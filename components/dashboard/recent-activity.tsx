@@ -60,7 +60,7 @@ export function RecentActivity({ submissions }: RecentActivityProps) {
             const status = statusConfig[submission.status];
             const StatusIcon = status.icon;
             const challengeTitle =
-              typeof submission.challengeId === 'object'
+              typeof submission.challengeId === 'object' && submission.challengeId !== null
                 ? submission.challengeId.title
                 : 'Challenge';
 

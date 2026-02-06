@@ -63,11 +63,11 @@ export default function SubmissionDetailPage() {
   }
 
   const challengeTitle =
-    typeof submission.challengeId === 'object'
+    typeof submission.challengeId === 'object' && submission.challengeId !== null
       ? submission.challengeId.title
       : 'Challenge';
   const difficulty =
-    typeof submission.challengeId === 'object'
+    typeof submission.challengeId === 'object' && submission.challengeId !== null
       ? submission.challengeId.difficulty
       : null;
 

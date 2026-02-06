@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { FileCode, User, MessageSquare } from 'lucide-react';
+import { FileCode, User, Play, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { getPendingReviews } from '@/lib/api/submissions';
-import { ReviewDialog } from '@/components/admin/review-dialog';
+import { getPendingAnalysis, analyzeSubmission } from '@/lib/api/submissions';
+import { ApiClientError } from '@/lib/api/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,38 +28,65 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants';
 import type { Submission } from '@/types';
 import { cn } from '@/lib/utils';
 
-export default function PendingReviewsPage() {
+export default function PendingAnalysisPage() {
   const [page, setPage] = useState(1);
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['pending-reviews', page],
-    queryFn: () => getPendingReviews(page, 20),
+    queryKey: ['pending-analysis', page],
+    queryFn: () => getPendingAnalysis(page, 20),
   });
 
-  const handleReviewComplete = () => {
-    setSelectedSubmission(null);
-    refetch();
-  };
+  const analyzeMutation = useMutation({
+    mutationFn: (id: string) => analyzeSubmission(id),
+    onMutate: (id) => {
+      setAnalyzingId(id);
+    },
+    onSuccess: (result) => {
+      toast.success('Analysis completed successfully!');
+      queryClient.invalidateQueries({ queryKey: ['pending-analysis'] });
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof ApiClientError ? error.message : 'Failed to analyze submission'
+      );
+    },
+    onSettled: () => {
+      setAnalyzingId(null);
+    },
+  });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Pending Reviews</h1>
+        <h1 className="text-3xl font-bold">Pending AI Analysis</h1>
         <p className="text-muted-foreground">
-          Review student explanations and grant bonus rewards
+          Manually trigger AI evaluation for pending submissions (Ollama)
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Submissions Awaiting Review</CardTitle>
+          <CardTitle>Submissions Awaiting Analysis</CardTitle>
           <CardDescription>
-            {data?.meta.total || 0} submissions pending review
+            {data?.meta.total || 0} submissions pending AI evaluation
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -70,8 +98,8 @@ export default function PendingReviewsPage() {
             </div>
           ) : !data?.data.length ? (
             <div className="text-center py-12 text-muted-foreground">
-              <FileCode className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>No submissions pending review</p>
+              <CheckCircle className="h-12 w-12 mx-auto mb-2 opacity-50 text-green-500" />
+              <p>All submissions have been analyzed!</p>
             </div>
           ) : (
             <>
@@ -81,7 +109,6 @@ export default function PendingReviewsPage() {
                     <TableHead>Student</TableHead>
                     <TableHead>Challenge</TableHead>
                     <TableHead>Language</TableHead>
-                    <TableHead>AI Score</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
@@ -104,6 +131,7 @@ export default function PendingReviewsPage() {
                       typeof submission.challengeId === 'object' && submission.challengeId !== null
                         ? submission.challengeId.difficulty
                         : null;
+                    const isAnalyzing = analyzingId === submission.id;
 
                     return (
                       <TableRow key={submission.id}>
@@ -138,22 +166,47 @@ export default function PendingReviewsPage() {
                             {submission.explanationLanguage || 'N/A'}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <span className="font-medium">
-                            {submission.aiScore ?? '-'}%
-                          </span>
-                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(submission.createdAt), 'PP')}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            onClick={() => setSelectedSubmission(submission)}
-                          >
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            Review
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                disabled={isAnalyzing || analyzeMutation.isPending}
+                              >
+                                {isAnalyzing ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Analyzing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="mr-2 h-4 w-4" />
+                                    Analyze
+                                  </>
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Run AI Analysis?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will send the submission to Ollama for evaluation.
+                                  The student will receive XP and coins based on their score.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => analyzeMutation.mutate(submission.id)}
+                                >
+                                  Run Analysis
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
                     );
@@ -197,14 +250,6 @@ export default function PendingReviewsPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Review Dialog */}
-      <ReviewDialog
-        submission={selectedSubmission}
-        open={!!selectedSubmission}
-        onOpenChange={(open) => !open && setSelectedSubmission(null)}
-        onComplete={handleReviewComplete}
-      />
     </div>
   );
 }

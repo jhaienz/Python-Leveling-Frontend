@@ -61,3 +61,22 @@ export async function reviewSubmission(
 ): Promise<ReviewResponse> {
   return api.post<ReviewResponse>(`/submissions/${id}/review`, data);
 }
+
+// AI Analysis endpoints (manual trigger)
+export async function getPendingAnalysis(
+  page: number = 1,
+  limit: number = 20
+): Promise<PaginatedResponse<Submission>> {
+  return api.get<PaginatedResponse<Submission>>(
+    `/submissions/pending-analysis?page=${page}&limit=${limit}`
+  );
+}
+
+export interface AnalyzeResponse {
+  message: string;
+  submission: Submission;
+}
+
+export async function analyzeSubmission(id: string): Promise<AnalyzeResponse> {
+  return api.post<AnalyzeResponse>(`/submissions/${id}/analyze`, {});
+}

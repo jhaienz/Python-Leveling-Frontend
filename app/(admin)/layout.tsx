@@ -12,6 +12,7 @@ import {
   Ticket,
   ArrowLeft,
   MessageSquareMore,
+  Brain,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils';
 const adminNavItems = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/admin/challenges', label: 'Challenges', icon: Code2 },
+  { href: '/admin/analysis', label: 'AI Analysis', icon: Brain },
   { href: '/admin/reviews', label: 'Reviews', icon: MessageSquareMore },
   { href: '/admin/shop', label: 'Shop Items', icon: ShoppingBag },
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },

@@ -73,9 +73,9 @@ export function ReviewDialog({
   if (!submission) return null;
 
   const userName =
-    typeof submission.userId === 'object' ? submission.userId.name : 'Unknown';
+    typeof submission.userId === 'object' && submission.userId !== null ? submission.userId.name : 'Unknown';
   const studentId =
-    typeof submission.userId === 'object' ? submission.userId.studentId : '';
+    typeof submission.userId === 'object' && submission.userId !== null ? submission.userId.studentId : '';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
