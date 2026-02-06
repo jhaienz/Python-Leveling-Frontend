@@ -81,7 +81,7 @@ export function RegisterForm() {
           name="studentId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Student ID</FormLabel>
+              <FormLabel>Student ID ex. 2400131</FormLabel>
               <FormControl>
                 <Input placeholder="Enter your student ID" {...field} />
               </FormControl>
@@ -95,6 +95,7 @@ export function RegisterForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
+              <FormLabel>Gbox Account</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="Enter your email" {...field} />
               </FormControl>
