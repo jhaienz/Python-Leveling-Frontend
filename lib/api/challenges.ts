@@ -1,13 +1,24 @@
-import { api } from './client';
-import type { Challenge, PaginatedResponse } from '@/types';
+import { api } from "./client";
+import type { Challenge, PaginatedResponse } from "@/types";
 
 export async function getCurrentChallenge(): Promise<Challenge> {
-  return api.get<Challenge>('/challenges/current');
+  const response = await api.get<Challenge | { data: Challenge }>(
+    "/challenges/current",
+  );
+  if (response && typeof response === "object" && "data" in response) {
+    return response.data;
+  }
+  return response as Challenge;
 }
 
 // Admin endpoints
-export async function listChallenges(page: number = 1, limit: number = 20): Promise<PaginatedResponse<Challenge>> {
-  return api.get<PaginatedResponse<Challenge>>(`/challenges?page=${page}&limit=${limit}`);
+export async function listChallenges(
+  page: number = 1,
+  limit: number = 20,
+): Promise<PaginatedResponse<Challenge>> {
+  return api.get<PaginatedResponse<Challenge>>(
+    `/challenges?page=${page}&limit=${limit}`,
+  );
 }
 
 export interface CreateChallengeInput {
@@ -25,15 +36,20 @@ export interface CreateChallengeInput {
   isActive?: boolean;
 }
 
-export async function createChallenge(data: CreateChallengeInput): Promise<Challenge> {
-  return api.post<Challenge>('/challenges', data);
+export async function createChallenge(
+  data: CreateChallengeInput,
+): Promise<Challenge> {
+  return api.post<Challenge>("/challenges", data);
 }
 
 export async function getChallenge(id: string): Promise<Challenge> {
   return api.get<Challenge>(`/challenges/${id}`);
 }
 
-export async function updateChallenge(id: string, data: Partial<CreateChallengeInput>): Promise<Challenge> {
+export async function updateChallenge(
+  id: string,
+  data: Partial<CreateChallengeInput>,
+): Promise<Challenge> {
   return api.patch<Challenge>(`/challenges/${id}`, data);
 }
 

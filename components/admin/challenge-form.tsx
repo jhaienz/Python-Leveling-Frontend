@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -19,20 +19,23 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CodeEditor } from '@/components/challenge/code-editor';
-import { challengeSchema, type ChallengeFormData } from '@/lib/validations/challenge';
-import { createChallenge, updateChallenge } from '@/lib/api/challenges';
-import type { Challenge } from '@/types';
-import { ApiClientError } from '@/lib/api/client';
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CodeEditor } from "@/components/challenge/code-editor";
+import {
+  challengeSchema,
+  type ChallengeFormData,
+} from "@/lib/validations/challenge";
+import { createChallenge, updateChallenge } from "@/lib/api/challenges";
+import type { Challenge } from "@/types";
+import { ApiClientError } from "@/lib/api/client";
 
 interface ChallengeFormProps {
   challenge?: Challenge;
@@ -51,7 +54,7 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
           problemStatement: challenge.problemStatement,
           starterCode: challenge.starterCode,
           testCases: challenge.testCases,
-          evaluationPrompt: challenge.evaluationPrompt || '',
+          evaluationPrompt: challenge.evaluationPrompt || "",
           difficulty: challenge.difficulty,
           baseXpReward: challenge.baseXpReward,
           bonusCoins: challenge.bonusCoins,
@@ -60,12 +63,12 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
           isActive: challenge.isActive || false,
         }
       : {
-          title: '',
-          description: '',
-          problemStatement: '',
-          starterCode: 'def solution():\n    pass',
-          testCases: [{ input: '', expectedOutput: '' }],
-          evaluationPrompt: '',
+          title: "",
+          description: "",
+          problemStatement: "",
+          starterCode: "def solution():\n    pass",
+          testCases: [{ input: "", expectedOutput: "" }],
+          evaluationPrompt: "",
           difficulty: 2,
           baseXpReward: 100,
           bonusCoins: 10,
@@ -77,7 +80,7 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: 'testCases',
+    name: "testCases",
   });
 
   async function onSubmit(data: ChallengeFormData) {
@@ -89,15 +92,17 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
       };
       if (challenge) {
         await updateChallenge(challenge.id, payload);
-        toast.success('Challenge updated');
+        toast.success("Challenge updated");
       } else {
         await createChallenge(payload);
-        toast.success('Challenge created');
+        toast.success("Challenge created");
       }
-      router.push('/admin/challenges');
+      router.push("/admin/challenges");
     } catch (error) {
       toast.error(
-        error instanceof ApiClientError ? error.message : 'Failed to save challenge'
+        error instanceof ApiClientError
+          ? error.message
+          : "Failed to save challenge",
       );
     } finally {
       setIsSubmitting(false);
@@ -198,7 +203,7 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ input: '', expectedOutput: '' })}
+                onClick={() => append({ input: "", expectedOutput: "" })}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Test Case
@@ -296,7 +301,9 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
                       <Input
                         type="number"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -314,7 +321,9 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
                       <Input
                         type="number"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -334,7 +343,14 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
                       <Input
                         type="number"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined,
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -352,7 +368,14 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
                       <Input
                         type="number"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined,
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -392,7 +415,9 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <FormLabel className="!mt-0">Active (make this the current challenge)</FormLabel>
+                  <FormLabel className="!mt-0">
+                    Active (make this the current challenge)
+                  </FormLabel>
                 </FormItem>
               )}
             />
@@ -403,13 +428,13 @@ export function ChallengeForm({ challenge }: ChallengeFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/admin/challenges')}
+            onClick={() => router.push("/admin/challenges")}
           >
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {challenge ? 'Update Challenge' : 'Create Challenge'}
+            {challenge ? "Update Challenge" : "Create Challenge"}
           </Button>
         </div>
       </form>
