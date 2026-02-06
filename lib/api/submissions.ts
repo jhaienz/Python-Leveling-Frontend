@@ -30,6 +30,14 @@ export async function getSubmissionStats(): Promise<SubmissionStats> {
   return api.get<SubmissionStats>('/submissions/stats');
 }
 
+export async function getMySubmissionForChallenge(challengeId: string): Promise<Submission | null> {
+  try {
+    return await api.get<Submission>(`/submissions/my/challenge/${challengeId}`);
+  } catch {
+    return null;
+  }
+}
+
 // Admin endpoints
 export async function getChallengeSubmissions(
   challengeId: string,

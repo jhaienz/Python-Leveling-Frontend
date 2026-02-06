@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { FileCode, User, Play, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Play, Loader2, CheckCircle, XCircle, Lightbulb, Coins, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { getPendingAnalysis, analyzeSubmission } from '@/lib/api/submissions';
@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -39,6 +40,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants';
 import type { Submission } from '@/types';
 import { cn } from '@/lib/utils';
@@ -46,6 +55,8 @@ import { cn } from '@/lib/utils';
 export default function PendingAnalysisPage() {
   const [page, setPage] = useState(1);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [resultModalOpen, setResultModalOpen] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<Submission | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
@@ -59,6 +70,8 @@ export default function PendingAnalysisPage() {
       setAnalyzingId(id);
     },
     onSuccess: (result) => {
+      setAnalysisResult(result.submission);
+      setResultModalOpen(true);
       toast.success('Analysis completed successfully!');
       queryClient.invalidateQueries({ queryKey: ['pending-analysis'] });
       refetch();
@@ -250,6 +263,131 @@ export default function PendingAnalysisPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Analysis Results Modal */}
+      <Dialog open={resultModalOpen} onOpenChange={setResultModalOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Analysis Results
+              {analysisResult?.status === 'PASSED' ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-500" />
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {analysisResult?.status === 'PASSED'
+                ? 'The submission passed the AI evaluation.'
+                : 'The submission did not pass the AI evaluation.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {analysisResult && (
+            <div className="space-y-4">
+              {/* Overall Score */}
+              {analysisResult.aiScore !== undefined && (
+                <div className="text-center py-4 bg-muted rounded-lg">
+                  <div
+                    className={cn(
+                      'text-5xl font-bold',
+                      analysisResult.aiScore >= 70 ? 'text-green-500' : 'text-red-500'
+                    )}
+                  >
+                    {analysisResult.aiScore}%
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">Overall Score</div>
+                </div>
+              )}
+
+              {/* Score Breakdown */}
+              {analysisResult.aiAnalysis && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">Score Breakdown</h4>
+                  <div className="grid gap-3">
+                    <MetricBar label="Correctness" value={analysisResult.aiAnalysis.correctness} />
+                    <MetricBar label="Code Quality" value={analysisResult.aiAnalysis.codeQuality} />
+                    <MetricBar label="Efficiency" value={analysisResult.aiAnalysis.efficiency} />
+                    <MetricBar label="Style" value={analysisResult.aiAnalysis.style} />
+                  </div>
+                </div>
+              )}
+
+              {/* Rewards Earned */}
+              {(analysisResult.xpEarned !== undefined || analysisResult.coinsEarned !== undefined) && (
+                <div className="flex gap-4 justify-center py-3 bg-muted/50 rounded-lg">
+                  {analysisResult.xpEarned !== undefined && (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-500" />
+                      <span className="font-semibold">+{analysisResult.xpEarned} XP</span>
+                    </div>
+                  )}
+                  {analysisResult.coinsEarned !== undefined && (
+                    <div className="flex items-center gap-2">
+                      <Coins className="h-5 w-5 text-yellow-500" />
+                      <span className="font-semibold">+{analysisResult.coinsEarned} Coins</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Feedback */}
+              {analysisResult.aiFeedback && (
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Feedback</h4>
+                  <div className="bg-muted rounded-lg p-3 text-sm">
+                    {analysisResult.aiFeedback}
+                  </div>
+                </div>
+              )}
+
+              {/* Suggestions */}
+              {analysisResult.aiSuggestions && analysisResult.aiSuggestions.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4 text-yellow-500" />
+                    Suggestions
+                  </h4>
+                  <ul className="space-y-1.5">
+                    {analysisResult.aiSuggestions.map((suggestion, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-sm text-muted-foreground"
+                      >
+                        <span className="text-primary font-medium">{index + 1}.</span>
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function MetricBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span>{label}</span>
+        <span className="font-medium">{value}%</span>
+      </div>
+      <Progress
+        value={value}
+        className="h-2"
+        style={
+          {
+            '--progress-background':
+              value >= 70 ? '#22c55e' : value >= 50 ? '#eab308' : '#ef4444',
+          } as React.CSSProperties
+        }
+      />
     </div>
   );
 }

@@ -13,6 +13,11 @@ import {
   MessageSquare,
   ChevronDown,
   AlertCircle,
+  CheckCircle,
+  XCircle,
+  Lightbulb,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -40,12 +45,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
 import { CodeEditor } from "./code-editor";
-import { submitCode } from "@/lib/api/submissions";
+import { submitCode, getMySubmissionForChallenge } from "@/lib/api/submissions";
 import { getCurrentChallenge } from "@/lib/api/challenges";
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from "@/lib/constants";
 import { ApiClientError } from "@/lib/api/client";
-import type { Challenge } from "@/types";
+import { cn } from "@/lib/utils";
+import type { Challenge, Submission } from "@/types";
 
 const DEFAULT_LANGUAGE = "Bicol";
 
@@ -119,8 +126,15 @@ function ChallengeItem({ challenge }: { challenge: Challenge }) {
   const [explanationLanguage] = useState(DEFAULT_LANGUAGE);
   const [isChallengeOpen, setIsChallengeOpen] = useState(true);
 
+  // Fetch existing submission for this challenge
+  const { data: existingSubmission } = useQuery({
+    queryKey: ["my-submission", challenge.id],
+    queryFn: () => getMySubmissionForChallenge(challenge.id),
+  });
+
+  const hasSubmitted = !!existingSubmission;
   const isExplanationValid = explanation.length >= 50;
-  const canSubmit = code.trim() && isExplanationValid && explanationLanguage;
+  const canSubmit = code.trim() && isExplanationValid && explanationLanguage && !hasSubmitted;
 
   const submitMutation = useMutation({
     mutationFn: () =>
@@ -246,114 +260,285 @@ function ChallengeItem({ challenge }: { challenge: Challenge }) {
             </CardContent>
           </Card>
 
-          {/* Code Editor */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Solution</CardTitle>
-              <CardDescription>Write your Python code below</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <CodeEditor value={code} onChange={setCode} height="400px" />
-            </CardContent>
-          </Card>
+          {/* Show submitted solution or code editor */}
+          {hasSubmitted && existingSubmission ? (
+            <SubmissionResultsView submission={existingSubmission} />
+          ) : (
+            <>
+              {/* Code Editor */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Solution</CardTitle>
+                  <CardDescription>Write your Python code below</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CodeEditor value={code} onChange={setCode} height="400px" />
+                </CardContent>
+              </Card>
 
-          {/* Explanation */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
-                <CardTitle>Explain Your Code</CardTitle>
-              </div>
-              <CardDescription>
-                Explain your solution in your native language (minimum 50
-                characters). This demonstrates your understanding of the code.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Language</Label>
-                <div className="text-sm text-muted-foreground">
-                  {DEFAULT_LANGUAGE}
-                </div>
-              </div>
+              {/* Explanation */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    <CardTitle>Explain Your Code</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Explain your solution in your native language (minimum 50
+                    characters). This demonstrates your understanding of the code.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Language</Label>
+                    <div className="text-sm text-muted-foreground">
+                      {DEFAULT_LANGUAGE}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor={`explanation-${challenge.id}`}>
-                  Explanation
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    ({explanation.length}/50 minimum characters)
-                  </span>
-                </Label>
-                <Textarea
-                  id={`explanation-${challenge.id}`}
-                  placeholder="Explain how your code works in your chosen language..."
-                  value={explanation}
-                  onChange={(e) => setExplanation(e.target.value)}
-                  rows={6}
-                  className={
-                    !isExplanationValid && explanation.length > 0
-                      ? "border-red-500"
-                      : ""
-                  }
-                />
-                {!isExplanationValid && explanation.length > 0 && (
-                  <p className="text-sm text-red-500">
-                    Explanation must be at least 50 characters (
-                    {50 - explanation.length} more needed)
-                  </p>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`explanation-${challenge.id}`}>
+                      Explanation
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({explanation.length}/50 minimum characters)
+                      </span>
+                    </Label>
+                    <Textarea
+                      id={`explanation-${challenge.id}`}
+                      placeholder="Explain how your code works in your chosen language..."
+                      value={explanation}
+                      onChange={(e) => setExplanation(e.target.value)}
+                      rows={6}
+                      className={
+                        !isExplanationValid && explanation.length > 0
+                          ? "border-red-500"
+                          : ""
+                      }
+                    />
+                    {!isExplanationValid && explanation.length > 0 && (
+                      <p className="text-sm text-red-500">
+                        Explanation must be at least 50 characters (
+                        {50 - explanation.length} more needed)
+                      </p>
+                    )}
+                  </div>
 
-              <Separator />
+                  <Separator />
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Your code will be evaluated by AI (not executed)</span>
-                </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Your code will be evaluated by AI (not executed)</span>
+                    </div>
 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="lg"
-                      disabled={submitMutation.isPending || !canSubmit}
-                    >
-                      {submitMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Submit Solution
-                        </>
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Submit your solution?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Your code and explanation will be sent for evaluation.
-                        You can submit up to 5 times per hour.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => submitMutation.mutate()}
-                      >
-                        Submit
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardContent>
-          </Card>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="lg"
+                          disabled={submitMutation.isPending || !canSubmit}
+                        >
+                          {submitMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="mr-2 h-4 w-4" />
+                              Submit Solution
+                            </>
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Submit your solution?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Your code and explanation will be sent for evaluation.
+                            You can submit up to 5 times per hour.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => submitMutation.mutate()}
+                          >
+                            Submit
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </>
       )}
+    </div>
+  );
+}
+
+function SubmissionResultsView({ submission }: { submission: Submission }) {
+  const { aiScore, aiFeedback, aiAnalysis, aiSuggestions, status, code, xpEarned, coinsEarned } = submission;
+
+  const isPending = status === "PENDING" || status === "EVALUATING";
+
+  return (
+    <div className="space-y-6">
+      {/* Locked Notice */}
+      <Alert>
+        <Lock className="h-4 w-4" />
+        <AlertTitle>Submission Locked</AlertTitle>
+        <AlertDescription>
+          You have already submitted a solution for this challenge.
+          {isPending && " Your submission is being evaluated."}
+        </AlertDescription>
+      </Alert>
+
+      {/* Your Submitted Code */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Your Submitted Code
+            {status === "PASSED" && <CheckCircle className="h-5 w-5 text-green-500" />}
+            {status === "FAILED" && <XCircle className="h-5 w-5 text-red-500" />}
+            {isPending && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+          </CardTitle>
+          <CardDescription>
+            {isPending
+              ? "Waiting for AI evaluation..."
+              : status === "PASSED"
+                ? "Great job! Your solution passed."
+                : "Your solution needs improvement."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-muted rounded-lg p-4 font-mono text-sm overflow-x-auto whitespace-pre">
+            {code}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Evaluation Results */}
+      {!isPending && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  AI Evaluation
+                  {status === "PASSED" ? (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-500" />
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  {status === "PASSED"
+                    ? "Your solution met the requirements."
+                    : "Review the feedback below to improve."}
+                </CardDescription>
+              </div>
+              {aiScore !== undefined && (
+                <div className="text-center">
+                  <div
+                    className={cn(
+                      "text-4xl font-bold",
+                      aiScore >= 70 ? "text-green-500" : "text-red-500"
+                    )}
+                  >
+                    {aiScore}%
+                  </div>
+                  <div className="text-xs text-muted-foreground">Overall Score</div>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Rewards Earned */}
+            {(xpEarned !== undefined || coinsEarned !== undefined) && (
+              <div className="flex gap-4 justify-center py-3 bg-muted/50 rounded-lg">
+                {xpEarned !== undefined && xpEarned > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                    <span className="font-semibold">+{xpEarned} XP</span>
+                  </div>
+                )}
+                {coinsEarned !== undefined && coinsEarned > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Coins className="h-5 w-5 text-yellow-500" />
+                    <span className="font-semibold">+{coinsEarned} Coins</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Analysis Breakdown */}
+            {aiAnalysis && (
+              <div className="space-y-4">
+                <h3 className="font-semibold">Score Breakdown</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <MetricBar label="Correctness" value={aiAnalysis.correctness} />
+                  <MetricBar label="Code Quality" value={aiAnalysis.codeQuality} />
+                  <MetricBar label="Efficiency" value={aiAnalysis.efficiency} />
+                  <MetricBar label="Style" value={aiAnalysis.style} />
+                </div>
+              </div>
+            )}
+
+            {/* Feedback */}
+            {aiFeedback && (
+              <div>
+                <h3 className="font-semibold mb-2">Feedback</h3>
+                <div className="bg-muted rounded-lg p-4 text-sm">{aiFeedback}</div>
+              </div>
+            )}
+
+            {/* Suggestions */}
+            {aiSuggestions && aiSuggestions.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-yellow-500" />
+                  Suggestions for Improvement
+                </h3>
+                <ul className="space-y-2">
+                  {aiSuggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start gap-2 text-sm text-muted-foreground"
+                    >
+                      <span className="text-primary font-medium">{index + 1}.</span>
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function MetricBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span>{label}</span>
+        <span className="font-medium">{value}%</span>
+      </div>
+      <Progress
+        value={value}
+        className="h-2"
+        style={
+          {
+            "--progress-background":
+              value >= 70 ? "#22c55e" : value >= 50 ? "#eab308" : "#ef4444",
+          } as React.CSSProperties
+        }
+      />
     </div>
   );
 }
