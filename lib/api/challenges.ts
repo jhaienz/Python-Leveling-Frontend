@@ -11,6 +11,21 @@ export async function getCurrentChallenge(): Promise<Challenge> {
   return response as Challenge;
 }
 
+// Get all active challenges for students
+export async function getActiveChallenges(): Promise<Challenge[]> {
+  const response = await api.get<Challenge[] | PaginatedResponse<Challenge>>(
+    "/challenges/active",
+  );
+  // Handle both array and paginated response
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (response && "data" in response) {
+    return response.data;
+  }
+  return [];
+}
+
 // Admin endpoints
 export async function listChallenges(
   page: number = 1,

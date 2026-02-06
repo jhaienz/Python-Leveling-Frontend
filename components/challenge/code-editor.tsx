@@ -3,6 +3,7 @@
 import { useTheme } from 'next-themes';
 import Editor from '@monaco-editor/react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface CodeEditorProps {
   value: string;
@@ -10,6 +11,7 @@ interface CodeEditorProps {
   language?: string;
   height?: string;
   readOnly?: boolean;
+  className?: string;
 }
 
 export function CodeEditor({
@@ -18,11 +20,19 @@ export function CodeEditor({
   language = 'python',
   height = '400px',
   readOnly = false,
+  className,
 }: CodeEditorProps) {
   const { resolvedTheme } = useTheme();
 
+  // Handle 100% height by using h-full class
+  const isFullHeight = height === '100%';
+
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className={cn(
+      "overflow-hidden",
+      isFullHeight ? "h-full" : "",
+      className
+    )}>
       <Editor
         height={height}
         language={language}
