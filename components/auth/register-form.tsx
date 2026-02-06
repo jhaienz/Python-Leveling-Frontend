@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -15,11 +15,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { registerSchema, type RegisterFormData } from '@/lib/validations/auth';
-import { register } from '@/lib/api/auth';
-import { useAuthStore } from '@/stores/auth-store';
-import { ApiClientError } from '@/lib/api/client';
+} from "@/components/ui/form";
+import { registerSchema, type RegisterFormData } from "@/lib/validations/auth";
+import { register } from "@/lib/api/auth";
+import { useAuthStore } from "@/stores/auth-store";
+import { ApiClientError } from "@/lib/api/client";
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,11 +28,11 @@ export function RegisterForm() {
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: '',
-      studentId: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
+      name: "",
+      studentId: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -46,14 +46,14 @@ export function RegisterForm() {
         email: data.email || undefined,
       });
       setAuth(response.user, response.accessToken);
-      toast.success('Account created successfully!');
+      toast.success("Account created successfully!");
       // Use window.location for full page navigation to ensure auth state is fresh
-      window.location.href = '/dashboard';
+      window.location.href = "/dashboard";
     } catch (error) {
       if (error instanceof ApiClientError) {
         toast.error(error.message);
       } else {
-        toast.error('An unexpected error occurred');
+        toast.error("An unexpected error occurred");
       }
       setIsLoading(false);
     }
@@ -95,7 +95,6 @@ export function RegisterForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email (Optional)</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="Enter your email" {...field} />
               </FormControl>
@@ -111,7 +110,11 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Create a password" {...field} />
+                <Input
+                  type="password"
+                  placeholder="Create a password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -125,7 +128,11 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Confirm your password" {...field} />
+                <Input
+                  type="password"
+                  placeholder="Confirm your password"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
