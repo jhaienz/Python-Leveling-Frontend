@@ -63,8 +63,11 @@ export interface AIAnalysis {
 
 export interface Submission {
   id: string;
+  userId?: string | { name: string; studentId: string };
   challengeId: string | { title: string; difficulty: number };
   code: string;
+  explanation?: string;
+  explanationLanguage?: string;
   status: SubmissionStatus;
   aiScore?: number;
   aiFeedback?: string;
@@ -72,8 +75,22 @@ export interface Submission {
   aiSuggestions?: string[];
   xpEarned?: number;
   coinsEarned?: number;
+  // Review fields
+  isReviewed?: boolean;
+  reviewedAt?: string;
+  explanationScore?: number;
+  reviewerFeedback?: string;
+  bonusXpFromReview?: number;
+  bonusCoinsFromReview?: number;
   createdAt: string;
   evaluatedAt?: string;
+}
+
+export interface ReviewSubmissionInput {
+  explanationScore: number;
+  bonusXp?: number;
+  bonusCoins?: number;
+  feedback?: string;
 }
 
 export interface SubmissionStats {

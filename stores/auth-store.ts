@@ -5,6 +5,17 @@ import { persist } from 'zustand/middleware';
 import type { User } from '@/types';
 import { getMe } from '@/lib/api/auth';
 
+// Helper to set cookie
+function setCookie(name: string, value: string, days: number = 7) {
+  const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+  document.cookie = `${name}=${value}; expires=${expires}; path=/`;
+}
+
+// Helper to remove cookie
+function removeCookie(name: string) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+}
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -31,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
 
       setAuth: (user, token) => {
         localStorage.setItem('token', token);
+        setCookie('token', token, 7); // Also set as cookie for middleware
         set({
           user,
           token,
@@ -41,6 +53,7 @@ export const useAuthStore = create<AuthState>()(
 
       clearAuth: () => {
         localStorage.removeItem('token');
+        removeCookie('token'); // Also remove cookie
         set({
           user: null,
           token: null,
@@ -61,12 +74,14 @@ export const useAuthStore = create<AuthState>()(
       initialize: async () => {
         const token = localStorage.getItem('token');
         if (!token) {
+          removeCookie('token'); // Ensure cookie is also cleared
           set({ isLoading: false, isInitialized: true });
           return;
         }
 
         try {
           const user = await getMe();
+          setCookie('token', token, 7); // Sync cookie with localStorage
           set({
             user,
             token,
@@ -76,6 +91,7 @@ export const useAuthStore = create<AuthState>()(
           });
         } catch {
           localStorage.removeItem('token');
+          removeCookie('token'); // Also remove cookie
           set({
             user: null,
             token: null,

@@ -4,12 +4,21 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Send, Loader2, Zap, Coins, AlertTriangle } from 'lucide-react';
+import { Send, Loader2, Zap, Coins, AlertTriangle, MessageSquare } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +36,19 @@ import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '@/lib/constants';
 import type { Challenge } from '@/types';
 import { ApiClientError } from '@/lib/api/client';
 
+const LANGUAGES = [
+  'Bicol',
+  'Tagalog',
+  'Cebuano',
+  'Ilocano',
+  'Hiligaynon',
+  'Waray',
+  'Pangasinan',
+  'Kapampangan',
+  'English',
+  'Other',
+];
+
 interface ChallengeViewProps {
   challenge: Challenge;
 }
@@ -34,9 +56,19 @@ interface ChallengeViewProps {
 export function ChallengeView({ challenge }: ChallengeViewProps) {
   const router = useRouter();
   const [code, setCode] = useState(challenge.starterCode);
+  const [explanation, setExplanation] = useState('');
+  const [explanationLanguage, setExplanationLanguage] = useState('');
+
+  const isExplanationValid = explanation.length >= 50;
+  const canSubmit = code.trim() && isExplanationValid && explanationLanguage;
 
   const submitMutation = useMutation({
-    mutationFn: () => submitCode({ challengeId: challenge.id, code }),
+    mutationFn: () => submitCode({
+      challengeId: challenge.id,
+      code,
+      explanation,
+      explanationLanguage,
+    }),
     onSuccess: (data) => {
       toast.success('Code submitted successfully!');
       router.push(`/submissions/${data.id}`);
@@ -144,6 +176,61 @@ export function ChallengeView({ challenge }: ChallengeViewProps) {
             onChange={setCode}
             height="400px"
           />
+        </CardContent>
+      </Card>
+
+      {/* Explanation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <CardTitle>Explain Your Code</CardTitle>
+          </div>
+          <CardDescription>
+            Explain your solution in your native language (minimum 50 characters).
+            This demonstrates your understanding of the code.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="language">Language</Label>
+            <Select value={explanationLanguage} onValueChange={setExplanationLanguage}>
+              <SelectTrigger id="language" className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="explanation">
+              Explanation
+              <span className="ml-2 text-xs text-muted-foreground">
+                ({explanation.length}/50 minimum characters)
+              </span>
+            </Label>
+            <Textarea
+              id="explanation"
+              placeholder="Explain how your code works in your chosen language..."
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              rows={6}
+              className={!isExplanationValid && explanation.length > 0 ? 'border-red-500' : ''}
+            />
+            {!isExplanationValid && explanation.length > 0 && (
+              <p className="text-sm text-red-500">
+                Explanation must be at least 50 characters ({50 - explanation.length} more needed)
+              </p>
+            )}
+          </div>
+
+          <Separator />
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -155,7 +242,7 @@ export function ChallengeView({ challenge }: ChallengeViewProps) {
               <AlertDialogTrigger asChild>
                 <Button
                   size="lg"
-                  disabled={submitMutation.isPending || !code.trim()}
+                  disabled={submitMutation.isPending || !canSubmit}
                 >
                   {submitMutation.isPending ? (
                     <>
@@ -174,7 +261,8 @@ export function ChallengeView({ challenge }: ChallengeViewProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Submit your solution?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Your code will be sent for AI evaluation. You can submit up to 5 times per hour.
+                    Your code and explanation will be sent for evaluation.
+                    You can submit up to 5 times per hour.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

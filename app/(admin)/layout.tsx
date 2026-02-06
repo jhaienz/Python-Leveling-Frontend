@@ -10,8 +10,8 @@ import {
   Megaphone,
   Users,
   Ticket,
-  ChevronLeft,
   ArrowLeft,
+  MessageSquareMore,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 const adminNavItems = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/admin/challenges', label: 'Challenges', icon: Code2 },
+  { href: '/admin/reviews', label: 'Reviews', icon: MessageSquareMore },
   { href: '/admin/shop', label: 'Shop Items', icon: ShoppingBag },
   { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
   { href: '/admin/users', label: 'Users', icon: Users },

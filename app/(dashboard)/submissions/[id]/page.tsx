@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ArrowLeft, Zap, Coins, Calendar } from 'lucide-react';
+import { ArrowLeft, Zap, Coins, Calendar, MessageSquare, CheckCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 import { getSubmission } from '@/lib/api/submissions';
@@ -145,8 +145,98 @@ export default function SubmissionDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Explanation */}
+      {submission.explanation && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <CardTitle>Your Explanation</CardTitle>
+            </div>
+            {submission.explanationLanguage && (
+              <CardDescription>
+                Written in {submission.explanationLanguage}
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="bg-muted rounded-lg p-4 whitespace-pre-wrap text-sm">
+              {submission.explanation}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* AI Feedback */}
       <AIFeedbackCard submission={submission} />
+
+      {/* Review Status */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            {submission.isReviewed ? (
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            ) : (
+              <Clock className="h-5 w-5 text-yellow-500" />
+            )}
+            <CardTitle>Admin Review</CardTitle>
+          </div>
+          <CardDescription>
+            {submission.isReviewed
+              ? `Reviewed on ${format(new Date(submission.reviewedAt!), 'PPp')}`
+              : 'Pending admin review for bonus rewards'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {submission.isReviewed ? (
+            <div className="space-y-4">
+              {/* Review Score and Bonus */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                {submission.explanationScore !== undefined && (
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {submission.explanationScore}%
+                    </div>
+                    <p className="text-sm text-muted-foreground">Explanation Score</p>
+                  </div>
+                )}
+                {submission.bonusXpFromReview !== undefined && submission.bonusXpFromReview > 0 && (
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      +{submission.bonusXpFromReview}
+                    </div>
+                    <p className="text-sm text-muted-foreground">Bonus XP</p>
+                  </div>
+                )}
+                {submission.bonusCoinsFromReview !== undefined && submission.bonusCoinsFromReview > 0 && (
+                  <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      +{submission.bonusCoinsFromReview}
+                    </div>
+                    <p className="text-sm text-muted-foreground">Bonus Coins</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Reviewer Feedback */}
+              {submission.reviewerFeedback && (
+                <div>
+                  <h4 className="font-semibold mb-2">Reviewer Feedback</h4>
+                  <div className="bg-muted rounded-lg p-4 whitespace-pre-wrap text-sm">
+                    {submission.reviewerFeedback}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>Your explanation is awaiting review by an admin.</p>
+              <p className="text-sm">You may receive bonus XP and coins based on your explanation quality.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

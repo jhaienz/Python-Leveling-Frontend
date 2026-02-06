@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -23,7 +22,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { ApiClientError } from '@/lib/api/client';
 
 export function RegisterForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
 
@@ -49,14 +47,14 @@ export function RegisterForm() {
       });
       setAuth(response.user, response.accessToken);
       toast.success('Account created successfully!');
-      router.push('/dashboard');
+      // Use window.location for full page navigation to ensure auth state is fresh
+      window.location.href = '/dashboard';
     } catch (error) {
       if (error instanceof ApiClientError) {
         toast.error(error.message);
       } else {
         toast.error('An unexpected error occurred');
       }
-    } finally {
       setIsLoading(false);
     }
   }

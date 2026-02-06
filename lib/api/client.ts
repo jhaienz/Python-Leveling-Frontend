@@ -27,6 +27,8 @@ export function setToken(token: string): void {
 export function clearToken(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('token');
+  // Also clear cookie
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
 }
 
 interface RequestOptions extends Omit<RequestInit, 'body'> {
@@ -71,10 +73,14 @@ export async function apiClient<T>(
       };
     }
 
-    // Handle 401 - redirect to login
+    // Handle 401 - redirect to login (but not if already on auth pages)
     if (response.status === 401 && typeof window !== 'undefined') {
-      clearToken();
-      window.location.href = '/login';
+      const isAuthPage = window.location.pathname === '/login' ||
+                         window.location.pathname === '/register';
+      if (!isAuthPage) {
+        clearToken();
+        window.location.href = '/login';
+      }
     }
 
     throw new ApiClientError(
