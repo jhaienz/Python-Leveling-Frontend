@@ -27,6 +27,17 @@ export interface LeaderboardEntry {
   tier: Tier;
 }
 
+export interface WeeklyLeaderboardEntry extends LeaderboardEntry {
+  weeklyXp: number;
+  submissionCount: number;
+}
+
+export interface WeeklyLeaderboardResponse {
+  week: number;
+  year: number;
+  data: WeeklyLeaderboardEntry[];
+}
+
 // Challenge Types
 export interface TestCase {
   input: string;
