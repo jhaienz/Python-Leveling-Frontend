@@ -96,7 +96,7 @@ export function ReviewDialog({
                 <p className="text-sm text-muted-foreground">{studentId}</p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={submission.status === 'PASSED' ? 'default' : 'destructive'}>
+                <Badge variant={submission.status === 'COMPLETED' ? 'default' : 'destructive'}>
                   {submission.status}
                 </Badge>
                 {submission.aiScore !== undefined && (

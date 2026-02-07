@@ -12,7 +12,7 @@ interface AIFeedbackCardProps {
 export function AIFeedbackCard({ submission }: AIFeedbackCardProps) {
   const { aiScore, aiFeedback, aiAnalysis, aiSuggestions, status } = submission;
 
-  if (status === 'PENDING' || status === 'EVALUATING') {
+  if (status === 'PENDING' || status === 'ONGOING') {
     return (
       <Card>
         <CardHeader>
@@ -40,14 +40,14 @@ export function AIFeedbackCard({ submission }: AIFeedbackCardProps) {
           <div>
             <CardTitle className="flex items-center gap-2">
               AI Evaluation
-              {status === 'PASSED' ? (
+              {status === 'COMPLETED' ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
               ) : (
                 <XCircle className="h-5 w-5 text-red-500" />
               )}
             </CardTitle>
             <CardDescription>
-              {status === 'PASSED' ? 'Great job! Your solution passed.' : 'Your solution needs improvement.'}
+              {status === 'COMPLETED' ? 'Great job! Your solution passed.' : 'Your solution needs improvement.'}
             </CardDescription>
           </div>
           {aiScore !== undefined && (

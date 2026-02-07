@@ -52,7 +52,7 @@ export interface Challenge {
 }
 
 // Submission Types
-export type SubmissionStatus = 'PENDING' | 'EVALUATING' | 'PASSED' | 'FAILED' | 'ERROR';
+export type SubmissionStatus = 'PENDING' | 'ONGOING' | 'COMPLETED' | 'FAILED' | 'ERROR';
 
 export interface AIAnalysis {
   correctness: number;

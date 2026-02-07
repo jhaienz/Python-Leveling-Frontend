@@ -270,14 +270,14 @@ export default function PendingAnalysisPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Analysis Results
-              {analysisResult?.status === 'PASSED' ? (
+              {analysisResult?.status === 'COMPLETED' ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
               ) : (
                 <XCircle className="h-5 w-5 text-red-500" />
               )}
             </DialogTitle>
             <DialogDescription>
-              {analysisResult?.status === 'PASSED'
+              {analysisResult?.status === 'COMPLETED'
                 ? 'The submission passed the AI evaluation.'
                 : 'The submission did not pass the AI evaluation.'}
             </DialogDescription>

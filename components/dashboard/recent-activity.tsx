@@ -15,8 +15,8 @@ interface RecentActivityProps {
 
 const statusConfig = {
   PENDING: { icon: Clock, color: 'text-yellow-500', label: 'Pending' },
-  EVALUATING: { icon: Clock, color: 'text-blue-500', label: 'Evaluating' },
-  PASSED: { icon: CheckCircle, color: 'text-green-500', label: 'Passed' },
+  ONGOING: { icon: Clock, color: 'text-blue-500', label: 'Ongoing' },
+  COMPLETED: { icon: CheckCircle, color: 'text-green-500', label: 'Completed' },
   FAILED: { icon: XCircle, color: 'text-red-500', label: 'Failed' },
   ERROR: { icon: AlertCircle, color: 'text-gray-500', label: 'Error' },
 };
@@ -88,7 +88,7 @@ export function RecentActivity({ submissions }: RecentActivityProps) {
                   <Badge
                     variant="secondary"
                     className={cn(
-                      submission.status === 'PASSED' && 'bg-green-100 text-green-700',
+                      submission.status === 'COMPLETED' && 'bg-green-100 text-green-700',
                       submission.status === 'FAILED' && 'bg-red-100 text-red-700',
                       submission.status === 'PENDING' && 'bg-yellow-100 text-yellow-700'
                     )}

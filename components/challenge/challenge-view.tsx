@@ -77,9 +77,9 @@ interface ChallengeWithStatus extends Challenge {
 
 function getChallengeStatus(submission?: Submission | null): ChallengeStatus {
   if (!submission) return "pending"; // No submission yet
-  if (submission.status === "PASSED") return "completed"; // Successfully completed
+  if (submission.status === "COMPLETED") return "completed"; // Successfully completed
   if (submission.status === "FAILED") return "failed"; // Failed evaluation
-  return "ongoing"; // PENDING, EVALUATING - submission in progress
+  return "ongoing"; // PENDING, ONGOING, ERROR - submission in progress
 }
 
 const STATUS_CONFIG: Record<
@@ -142,6 +142,8 @@ export function ChallengeView() {
       queryKey: ["my-submission", challenge.id],
       queryFn: () => getMySubmissionForChallenge(challenge.id),
       enabled: sortedChallenges.length > 0,
+      staleTime: 0, // Always refetch to ensure we have the latest submission data
+      refetchOnMount: "always" as const, // Refetch when component mounts
     })),
   });
 
@@ -274,7 +276,7 @@ export function ChallengeView() {
                       <StatusIcon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs text-muted-foreground">
                           #{index + 1}
                         </span>
@@ -286,6 +288,15 @@ export function ChallengeView() {
                           )}
                         >
                           {DIFFICULTY_LABELS[challenge.difficulty]}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] px-1.5 py-0",
+                            STATUS_CONFIG[challenge.status].color
+                          )}
+                        >
+                          {STATUS_CONFIG[challenge.status].label}
                         </Badge>
                       </div>
                       <p
@@ -407,13 +418,6 @@ function ChallengeContent({
 
   const hasSubmitted = !!submission || justSubmitted;
   const isExplanationValid = explanation.length >= 50;
-  const isSubmitDisabled =
-    !code.trim() ||
-    !isExplanationValid ||
-    !explanationLanguage ||
-    hasSubmitted ||
-    submitMutation.isPending ||
-    submitMutation.isSuccess;
 
   const submitMutation = useMutation({
     mutationFn: () =>
@@ -439,6 +443,15 @@ function ChallengeContent({
       }
     },
   });
+
+  // Calculate after submitMutation is defined
+  const isSubmitDisabled =
+    !code.trim() ||
+    !isExplanationValid ||
+    !explanationLanguage ||
+    hasSubmitted ||
+    submitMutation.isPending ||
+    submitMutation.isSuccess;
 
   // Navigation bar component
   const NavigationBar = () => (
@@ -818,7 +831,7 @@ function SubmissionResultsContent({
     coinsEarned,
   } = submission;
 
-  const isPending = status === "PENDING" || status === "EVALUATING";
+  const isPending = status === "PENDING" || status === "ONGOING";
 
   return (
     <ResizablePanelGroup orientation="horizontal">
@@ -834,7 +847,7 @@ function SubmissionResultsContent({
               >
                 {DIFFICULTY_LABELS[challenge.difficulty]}
               </Badge>
-              {status === "PASSED" && (
+              {status === "COMPLETED" && (
                 <Badge className="bg-green-500 text-white">Passed</Badge>
               )}
               {status === "FAILED" && (
@@ -1057,7 +1070,7 @@ function SubmissionResultsContent({
           <div className="flex items-center justify-between border-b px-4 py-2 shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Your Submitted Code</span>
-              {status === "PASSED" && (
+              {status === "COMPLETED" && (
                 <CheckCircle className="h-4 w-4 text-green-500" />
               )}
               {status === "FAILED" && (
