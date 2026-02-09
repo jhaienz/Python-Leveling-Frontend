@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -18,12 +18,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { announcementSchema, type AnnouncementFormData } from '@/lib/validations/announcement';
-import { createAnnouncement, updateAnnouncement } from '@/lib/api/announcements';
-import type { Announcement } from '@/types';
-import { ApiClientError } from '@/lib/api/client';
+} from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  announcementSchema,
+  type AnnouncementFormData,
+} from "@/lib/validations/announcement";
+import {
+  createAnnouncement,
+  updateAnnouncement,
+} from "@/lib/api/announcements";
+import type { Announcement } from "@/types";
+import { ApiClientError } from "@/lib/api/client";
 
 interface AnnouncementFormProps {
   announcement?: Announcement;
@@ -43,8 +49,8 @@ export function AnnouncementForm({ announcement }: AnnouncementFormProps) {
           isPublished: announcement.isPublished ?? false,
         }
       : {
-          title: '',
-          content: '',
+          title: "",
+          content: "",
           isPinned: false,
           isPublished: false,
         },
@@ -55,15 +61,17 @@ export function AnnouncementForm({ announcement }: AnnouncementFormProps) {
     try {
       if (announcement) {
         await updateAnnouncement(announcement.id, data);
-        toast.success('Announcement updated');
+        toast.success("Announcement updated");
       } else {
         await createAnnouncement(data);
-        toast.success('Announcement created');
+        toast.success("Announcement created");
       }
-      router.push('/admin/announcements');
+      router.push("/admin/announcements");
     } catch (error) {
       toast.error(
-        error instanceof ApiClientError ? error.message : 'Failed to save announcement'
+        error instanceof ApiClientError
+          ? error.message
+          : "Failed to save announcement",
       );
     } finally {
       setIsSubmitting(false);
@@ -122,7 +130,7 @@ export function AnnouncementForm({ announcement }: AnnouncementFormProps) {
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <FormLabel className="!mt-0">Pin to top</FormLabel>
+                    <FormLabel className="!mt-0!">Pin to top</FormLabel>
                   </FormItem>
                 )}
               />
@@ -138,7 +146,9 @@ export function AnnouncementForm({ announcement }: AnnouncementFormProps) {
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <FormLabel className="!mt-0">Publish immediately</FormLabel>
+                    <FormLabel className="!mt-0!">
+                      Publish immediately
+                    </FormLabel>
                   </FormItem>
                 )}
               />
@@ -150,13 +160,13 @@ export function AnnouncementForm({ announcement }: AnnouncementFormProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/admin/announcements')}
+            onClick={() => router.push("/admin/announcements")}
           >
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {announcement ? 'Update Announcement' : 'Create Announcement'}
+            {announcement ? "Update Announcement" : "Create Announcement"}
           </Button>
         </div>
       </form>

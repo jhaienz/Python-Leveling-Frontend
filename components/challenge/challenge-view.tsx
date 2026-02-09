@@ -2,7 +2,12 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueries,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Send,
@@ -56,15 +61,13 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { CodeEditor } from "./code-editor";
-import {
-  submitCode,
-  getMySubmissionForChallenge,
-} from "@/lib/api/submissions";
-import { getActiveChallenges, listChallenges } from "@/lib/api/challenges";
+import { submitCode, getMySubmissionForChallenge } from "@/lib/api/submissions";
+import { getActiveChallenges } from "@/lib/api/challenges";
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from "@/lib/constants";
 import { ApiClientError } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import type { Challenge, Submission } from "@/types";
+import { WeekendNotice } from "./weekend-notice";
 
 const DEFAULT_LANGUAGE = "Bicol";
 
@@ -120,16 +123,10 @@ export function ChallengeView() {
   } = useQuery({
     queryKey: ["active-challenges"],
     queryFn: async () => {
-      try {
-        return await getActiveChallenges();
-      } catch {
-        const response = await listChallenges(1, 100);
-        return response.data.filter((c) => c.isActive !== false);
-      }
+      return await getActiveChallenges();
     },
-    retry: false,
+    retry: 1, // Allow one retry
   });
-
   // Sort challenges by difficulty (1=Very Easy to 5=Very Hard)
   const sortedChallenges = useMemo(() => {
     if (!challengesData) return [];
@@ -177,7 +174,7 @@ export function ChallengeView() {
 
   const skipToNext = () => {
     const nextUnsolved = challengesWithStatus.findIndex(
-      (c, i) => i > selectedIndex && c.status !== "completed"
+      (c, i) => i > selectedIndex && c.status !== "completed",
     );
     if (nextUnsolved !== -1) {
       setSelectedIndex(nextUnsolved);
@@ -196,6 +193,19 @@ export function ChallengeView() {
   }
 
   if (challengesError) {
+    const isNoActiveChallengesError =
+      challengesError instanceof ApiClientError &&
+      (challengesError.statusCode === 404 ||
+        challengesError.message.toLowerCase().includes("no active challenges"));
+    const isWeekendOnlyError =
+      challengesError instanceof ApiClientError &&
+      (challengesError.statusCode === 403 ||
+        challengesError.message.toLowerCase().includes("weekend"));
+
+    if (isNoActiveChallengesError || isWeekendOnlyError) {
+      return <WeekendNotice />;
+    }
+
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -204,19 +214,6 @@ export function ChallengeView() {
           {challengesError instanceof ApiClientError
             ? challengesError.message
             : "Failed to load challenges. Please try again later."}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (!sortedChallenges.length) {
-    return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>No Active Challenges</AlertTitle>
-        <AlertDescription>
-          There are no active challenges available at the moment. Check back
-          later!
         </AlertDescription>
       </Alert>
     );
@@ -232,8 +229,11 @@ export function ChallengeView() {
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Challenges</h2>
               <Badge variant="outline" className="text-xs">
-                {challengesWithStatus.filter((c) => c.status === "completed").length}/
-                {challengesWithStatus.length}
+                {
+                  challengesWithStatus.filter((c) => c.status === "completed")
+                    .length
+                }
+                /{challengesWithStatus.length}
               </Badge>
             </div>
             <div className="mt-2">
@@ -264,13 +264,13 @@ export function ChallengeView() {
                       "w-full flex items-start gap-3 p-3 rounded-lg text-left transition-colors",
                       isSelected
                         ? "bg-primary/10 border border-primary/20"
-                        : "hover:bg-muted"
+                        : "hover:bg-muted",
                     )}
                   >
                     <div
                       className={cn(
                         "shrink-0 p-1.5 rounded-md",
-                        STATUS_CONFIG[challenge.status].color
+                        STATUS_CONFIG[challenge.status].color,
                       )}
                     >
                       <StatusIcon className="h-4 w-4" />
@@ -284,7 +284,7 @@ export function ChallengeView() {
                           className={cn(
                             "text-[10px] px-1.5 py-0",
                             DIFFICULTY_COLORS[challenge.difficulty],
-                            "text-white"
+                            "text-white",
                           )}
                         >
                           {DIFFICULTY_LABELS[challenge.difficulty]}
@@ -293,7 +293,7 @@ export function ChallengeView() {
                           variant="outline"
                           className={cn(
                             "text-[10px] px-1.5 py-0",
-                            STATUS_CONFIG[challenge.status].color
+                            STATUS_CONFIG[challenge.status].color,
                           )}
                         >
                           {STATUS_CONFIG[challenge.status].label}
@@ -302,7 +302,7 @@ export function ChallengeView() {
                       <p
                         className={cn(
                           "text-sm font-medium mt-1 truncate",
-                          isSelected && "text-primary"
+                          isSelected && "text-primary",
                         )}
                       >
                         {challenge.title}
@@ -330,7 +330,7 @@ export function ChallengeView() {
               {Object.entries(STATUS_CONFIG).map(([key, config]) => {
                 const Icon = config.icon;
                 const count = challengesWithStatus.filter(
-                  (c) => c.status === key
+                  (c) => c.status === key,
                 ).length;
                 return (
                   <div
@@ -352,7 +352,7 @@ export function ChallengeView() {
       {/* Main Content */}
       <div
         className={cn(
-          "flex-1 border rounded-lg bg-card flex flex-col overflow-hidden"
+          "flex-1 border rounded-lg bg-card flex flex-col overflow-hidden",
         )}
       >
         {selectedChallenge && !isLoadingSubmissions ? (
@@ -389,9 +389,17 @@ interface ChallengeContentProps {
   showList: boolean;
 }
 
-function ChallengeContent({
-  challenge,
-  submission,
+interface NavigationBarProps {
+  currentIndex: number;
+  totalCount: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  onSkip: () => void;
+  onToggleList: () => void;
+  showList: boolean;
+}
+
+function NavigationBar({
   currentIndex,
   totalCount,
   onPrevious,
@@ -399,62 +407,8 @@ function ChallengeContent({
   onSkip,
   onToggleList,
   showList,
-}: ChallengeContentProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [code, setCode] = useState(challenge.starterCode ?? "");
-  const [explanation, setExplanation] = useState("");
-  const [explanationLanguage] = useState(DEFAULT_LANGUAGE);
-  const [justSubmitted, setJustSubmitted] = useState(false);
-
-  // Reset code when challenge changes
-  const [lastChallengeId, setLastChallengeId] = useState(challenge.id);
-  if (challenge.id !== lastChallengeId) {
-    setCode(challenge.starterCode ?? "");
-    setExplanation("");
-    setJustSubmitted(false);
-    setLastChallengeId(challenge.id);
-  }
-
-  const hasSubmitted = !!submission || justSubmitted;
-  const isExplanationValid = explanation.length >= 50;
-
-  const submitMutation = useMutation({
-    mutationFn: () =>
-      submitCode({
-        challengeId: challenge.id,
-        code,
-        explanation,
-        explanationLanguage,
-      }),
-    onSuccess: (data) => {
-      // Mark as submitted immediately to prevent double submissions
-      setJustSubmitted(true);
-      // Invalidate the submission query so it refetches
-      queryClient.invalidateQueries({ queryKey: ["my-submission", challenge.id] });
-      toast.success("Code submitted successfully!");
-      router.push(`/submissions/${data.id}`);
-    },
-    onError: (error) => {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to submit code");
-      }
-    },
-  });
-
-  // Calculate after submitMutation is defined
-  const isSubmitDisabled =
-    !code.trim() ||
-    !isExplanationValid ||
-    !explanationLanguage ||
-    hasSubmitted ||
-    submitMutation.isPending ||
-    submitMutation.isSuccess;
-
-  // Navigation bar component
-  const NavigationBar = () => (
+}: NavigationBarProps) {
+  return (
     <div className="flex items-center justify-between border-b px-4 py-2 bg-muted/30 shrink-0">
       <div className="flex items-center gap-2">
         <Button
@@ -512,12 +466,87 @@ function ChallengeContent({
       </div>
     </div>
   );
+}
+
+function ChallengeContent({
+  challenge,
+  submission,
+  currentIndex,
+  totalCount,
+  onPrevious,
+  onNext,
+  onSkip,
+  onToggleList,
+  showList,
+}: ChallengeContentProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [code, setCode] = useState(challenge.starterCode ?? "");
+  const [explanation, setExplanation] = useState("");
+  const [explanationLanguage] = useState(DEFAULT_LANGUAGE);
+  const [justSubmitted, setJustSubmitted] = useState(false);
+
+  // Reset code when challenge changes
+  const [lastChallengeId, setLastChallengeId] = useState(challenge.id);
+  if (challenge.id !== lastChallengeId) {
+    setCode(challenge.starterCode ?? "");
+    setExplanation("");
+    setJustSubmitted(false);
+    setLastChallengeId(challenge.id);
+  }
+
+  const hasSubmitted = !!submission || justSubmitted;
+  const isExplanationValid = explanation.length >= 50;
+
+  const submitMutation = useMutation({
+    mutationFn: () =>
+      submitCode({
+        challengeId: challenge.id,
+        code,
+        explanation,
+        explanationLanguage,
+      }),
+    onSuccess: (data) => {
+      // Mark as submitted immediately to prevent double submissions
+      setJustSubmitted(true);
+      // Invalidate the submission query so it refetches
+      queryClient.invalidateQueries({
+        queryKey: ["my-submission", challenge.id],
+      });
+      toast.success("Code submitted successfully!");
+      router.push(`/submissions/${data.id}`);
+    },
+    onError: (error) => {
+      if (error instanceof ApiClientError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to submit code");
+      }
+    },
+  });
+
+  // Calculate after submitMutation is defined
+  const isSubmitDisabled =
+    !code.trim() ||
+    !isExplanationValid ||
+    !explanationLanguage ||
+    hasSubmitted ||
+    submitMutation.isPending ||
+    submitMutation.isSuccess;
 
   // If submitted, show results view
   if (hasSubmitted && submission) {
     return (
       <>
-        <NavigationBar />
+        <NavigationBar
+          currentIndex={currentIndex}
+          totalCount={totalCount}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          onSkip={onSkip}
+          onToggleList={onToggleList}
+          showList={showList}
+        />
         <div className="flex-1 min-h-0 overflow-hidden">
           <SubmissionResultsContent
             submission={submission}
@@ -530,7 +559,15 @@ function ChallengeContent({
 
   return (
     <>
-      <NavigationBar />
+      <NavigationBar
+        currentIndex={currentIndex}
+        totalCount={totalCount}
+        onPrevious={onPrevious}
+        onNext={onNext}
+        onSkip={onSkip}
+        onToggleList={onToggleList}
+        showList={showList}
+      />
       <div className="flex-1 min-h-0 overflow-hidden">
         <ResizablePanelGroup orientation="horizontal">
           {/* Left Panel - Problem Description */}
@@ -554,7 +591,10 @@ function ChallengeContent({
               </div>
 
               {/* Tabs */}
-              <Tabs defaultValue="description" className="flex-1 flex flex-col min-h-0">
+              <Tabs
+                defaultValue="description"
+                className="flex-1 flex flex-col min-h-0"
+              >
                 <TabsList variant="line" className="px-4 pt-2 shrink-0">
                   <TabsTrigger value="description" className="gap-1.5">
                     <FileText className="h-4 w-4" />
@@ -570,7 +610,10 @@ function ChallengeContent({
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="description" className="flex-1 mt-0 min-h-0">
+                <TabsContent
+                  value="description"
+                  className="flex-1 mt-0 min-h-0"
+                >
                   <ScrollArea className="h-full">
                     <div className="p-4 space-y-4">
                       <div>
@@ -735,7 +778,7 @@ function ChallengeContent({
                       "resize-none text-sm",
                       !isExplanationValid && explanation.length > 0
                         ? "border-red-500 focus-visible:ring-red-500"
-                        : ""
+                        : "",
                     )}
                   />
                   {!isExplanationValid && explanation.length > 0 && (
@@ -749,7 +792,9 @@ function ChallengeContent({
                 <div className="flex items-center justify-between border-t px-4 py-3 bg-muted/30">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>Your code will be evaluated by AI (not executed)</span>
+                    <span>
+                      Your code will be evaluated by AI (not executed)
+                    </span>
                   </div>
 
                   <AlertDialog>
@@ -789,7 +834,9 @@ function ChallengeContent({
                         </AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => submitMutation.mutate()}
-                          disabled={submitMutation.isPending || submitMutation.isSuccess}
+                          disabled={
+                            submitMutation.isPending || submitMutation.isSuccess
+                          }
                         >
                           {submitMutation.isPending ? (
                             <>
@@ -895,7 +942,7 @@ function SubmissionResultsContent({
                         <div
                           className={cn(
                             "text-5xl font-bold",
-                            aiScore >= 70 ? "text-green-500" : "text-red-500"
+                            aiScore >= 70 ? "text-green-500" : "text-red-500",
                           )}
                         >
                           {aiScore}%
@@ -914,7 +961,9 @@ function SubmissionResultsContent({
                         {xpEarned !== undefined && xpEarned > 0 && (
                           <div className="flex items-center gap-2">
                             <Sparkles className="h-5 w-5 text-purple-500" />
-                            <span className="font-semibold">+{xpEarned} XP</span>
+                            <span className="font-semibold">
+                              +{xpEarned} XP
+                            </span>
                           </div>
                         )}
                         {coinsEarned !== undefined && coinsEarned > 0 && (
