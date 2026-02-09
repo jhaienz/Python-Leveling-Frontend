@@ -1,6 +1,12 @@
 // User Types
-export type Tier = 'Newbie' | 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert' | 'Master';
-export type UserRole = 'USER' | 'ADMIN';
+export type Tier =
+  | "Newbie"
+  | "Beginner"
+  | "Intermediate"
+  | "Advanced"
+  | "Expert"
+  | "Master";
+export type UserRole = "USER" | "ADMIN";
 
 export interface User {
   id: string;
@@ -63,7 +69,12 @@ export interface Challenge {
 }
 
 // Submission Types
-export type SubmissionStatus = 'PENDING' | 'ONGOING' | 'COMPLETED' | 'FAILED' | 'ERROR';
+export type SubmissionStatus =
+  | "PENDING"
+  | "ONGOING"
+  | "COMPLETED"
+  | "FAILED"
+  | "ERROR";
 
 export interface AIAnalysis {
   correctness: number;
@@ -155,7 +166,11 @@ export interface Announcement {
 }
 
 // Transaction Types
-export type TransactionType = 'LEVEL_UP_REWARD' | 'CHALLENGE_BONUS' | 'SHOP_PURCHASE' | 'ADMIN_GRANT';
+export type TransactionType =
+  | "LEVEL_UP_REWARD"
+  | "CHALLENGE_BONUS"
+  | "SHOP_PURCHASE"
+  | "ADMIN_GRANT";
 
 export interface Transaction {
   id: string;

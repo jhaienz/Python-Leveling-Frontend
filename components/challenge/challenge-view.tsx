@@ -123,6 +123,9 @@ export function ChallengeView() {
   } = useQuery({
     queryKey: ["active-challenges"],
     queryFn: async () => {
+      const data = await getActiveChallenges();
+      console.log("Raw challenges data:", data);
+      console.log("First challenge test cases:", data[0]?.testCases);
       return await getActiveChallenges();
     },
     retry: 1, // Allow one retry
@@ -643,38 +646,48 @@ function ChallengeContent({
                   <ScrollArea className="h-full">
                     <div className="p-4 space-y-3">
                       {challenge.testCases && challenge.testCases.length > 0 ? (
-                        challenge.testCases.map((testCase, index) => (
-                          <div
-                            key={index}
-                            className="bg-muted rounded-lg p-4 space-y-2"
-                          >
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
-                                Example {index + 1}
-                              </span>
-                            </div>
-                            <div className="space-y-1 font-mono text-sm">
-                              <div>
-                                <span className="text-muted-foreground">
-                                  Input:{" "}
-                                </span>
-                                <span className="text-foreground">
-                                  {testCase.input}
+                        challenge.testCases.map((testCase, index) => {
+                          const expectedOutput =
+                            testCase.expectedOutput ??
+                            (testCase as { expected_output?: unknown })
+                              .expected_output ??
+                            (testCase as { expected?: unknown }).expected ??
+                            (testCase as { output?: unknown }).output;
+
+                          return (
+                            <div
+                              key={index}
+                              className="bg-muted rounded-lg p-4 space-y-2"
+                            >
+                              <div className="flex items-center gap-2 text-sm font-medium">
+                                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
+                                  Example {index + 1}
                                 </span>
                               </div>
-                              {testCase.expectedOutput && (
+                              <div className="space-y-1 font-mono text-sm">
                                 <div>
                                   <span className="text-muted-foreground">
-                                    Expected:{" "}
+                                    Input:{" "}
                                   </span>
-                                  <span className="text-green-600 dark:text-green-400">
-                                    {testCase.expectedOutput}
+                                  <span className="text-foreground">
+                                    {testCase.input}
                                   </span>
                                 </div>
-                              )}
+                                {expectedOutput !== undefined &&
+                                  expectedOutput !== null && (
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Expected:{" "}
+                                      </span>
+                                      <span className="text-green-600 dark:text-green-400">
+                                        {String(expectedOutput)}
+                                      </span>
+                                    </div>
+                                  )}
+                              </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <p className="text-sm text-muted-foreground">
                           No test cases available for this challenge.
@@ -1079,26 +1092,36 @@ function SubmissionResultsContent({
                           Test Cases
                         </h3>
                         <div className="space-y-2">
-                          {challenge.testCases.map((testCase, index) => (
-                            <div
-                              key={index}
-                              className="bg-muted rounded-lg p-3 font-mono text-sm"
-                            >
-                              <span className="text-muted-foreground">
-                                Input:
-                              </span>{" "}
-                              {testCase.input}
-                              {testCase.expectedOutput && (
-                                <>
-                                  <br />
-                                  <span className="text-muted-foreground">
-                                    Expected:
-                                  </span>{" "}
-                                  {testCase.expectedOutput}
-                                </>
-                              )}
-                            </div>
-                          ))}
+                          {challenge.testCases.map((testCase, index) => {
+                            const expectedOutput =
+                              testCase.expectedOutput ??
+                              (testCase as { expected_output?: unknown })
+                                .expected_output ??
+                              (testCase as { expected?: unknown }).expected ??
+                              (testCase as { output?: unknown }).output;
+
+                            return (
+                              <div
+                                key={index}
+                                className="bg-muted rounded-lg p-3 font-mono text-sm"
+                              >
+                                <span className="text-muted-foreground">
+                                  Input:
+                                </span>{" "}
+                                {testCase.input}
+                                {expectedOutput !== undefined &&
+                                  expectedOutput !== null && (
+                                    <>
+                                      <br />
+                                      <span className="text-muted-foreground">
+                                        Expected:
+                                      </span>{" "}
+                                      {String(expectedOutput)}
+                                    </>
+                                  )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </>
