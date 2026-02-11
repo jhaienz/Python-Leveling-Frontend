@@ -2,12 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  useMutation,
-  useQuery,
-  useQueries,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Send,
@@ -61,12 +56,16 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { CodeEditor } from "./code-editor";
-import { submitCode, getMySubmissionForChallenge } from "@/lib/api/submissions";
+import {
+  submitCode,
+  getMySubmissions,
+  getSubmission,
+} from "@/lib/api/submissions";
 import { getActiveChallenges } from "@/lib/api/challenges";
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from "@/lib/constants";
 import { ApiClientError } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
-import type { Challenge, Submission } from "@/types";
+import type { Challenge, Submission, PaginatedResponse } from "@/types";
 import { WeekendNotice } from "./weekend-notice";
 
 const DEFAULT_LANGUAGE = "Bicol";
@@ -136,31 +135,106 @@ export function ChallengeView() {
     return [...challengesData].sort((a, b) => a.difficulty - b.difficulty);
   }, [challengesData]);
 
-  // Fetch submissions for all challenges
-  const submissionQueries = useQueries({
-    queries: sortedChallenges.map((challenge) => ({
-      queryKey: ["my-submission", challenge.id],
-      queryFn: () => getMySubmissionForChallenge(challenge.id),
-      enabled: sortedChallenges.length > 0,
-      staleTime: 0, // Always refetch to ensure we have the latest submission data
-      refetchOnMount: "always" as const, // Refetch when component mounts
-    })),
+  const selectedChallengeId = sortedChallenges[selectedIndex]?.id;
+
+  // Fetch all submissions to derive per-challenge status
+  const { data: submissionsData, isLoading: isLoadingSubmissions } = useQuery<
+    PaginatedResponse<Submission>
+  >({
+    queryKey: ["my-submissions"],
+    queryFn: () => getMySubmissions(1, 200),
+    enabled: sortedChallenges.length > 0,
+    staleTime: 0,
+    refetchOnMount: "always" as const,
+    refetchInterval: (query) =>
+      query.state.data?.data?.some(
+        (submission: Submission) =>
+          submission.status === "PENDING" || submission.status === "ONGOING",
+      )
+        ? 5000
+        : false,
+    refetchIntervalInBackground: true,
   });
+
+  const submissionsByChallengeId = useMemo(() => {
+    const map = new Map<string, Submission>();
+    const submissions = submissionsData?.data ?? [];
+
+    submissions.forEach((submission) => {
+      const challengeId =
+        typeof submission.challengeId === "string"
+          ? submission.challengeId
+          : ((submission.challengeId as { id?: string; _id?: string } | null)
+              ?.id ??
+            (submission.challengeId as { id?: string; _id?: string } | null)
+              ?._id);
+
+      if (!challengeId) return;
+
+      const existing = map.get(challengeId);
+      if (!existing) {
+        map.set(challengeId, submission);
+        return;
+      }
+
+      const submissionDate = new Date(
+        submission.evaluatedAt ?? submission.createdAt,
+      ).getTime();
+      const existingDate = new Date(
+        existing.evaluatedAt ?? existing.createdAt,
+      ).getTime();
+
+      if (submissionDate >= existingDate) {
+        map.set(challengeId, submission);
+      }
+    });
+
+    return map;
+  }, [submissionsData]);
+
+  const selectedSubmissionSummary = selectedChallengeId
+    ? submissionsByChallengeId.get(selectedChallengeId)
+    : undefined;
+  const selectedSubmissionId = selectedSubmissionSummary?.id;
+
+  // Fetch full submission details for the selected challenge
+  const { data: selectedSubmission, isLoading: isLoadingSelectedSubmission } =
+    useQuery<Submission>({
+      queryKey: ["submission", selectedSubmissionId],
+      queryFn: () => getSubmission(selectedSubmissionId ?? ""),
+      enabled: Boolean(selectedSubmissionId),
+      staleTime: 0,
+      refetchOnMount: "always" as const,
+      refetchInterval: (query) =>
+        query.state.data?.status === "PENDING" ||
+        query.state.data?.status === "ONGOING"
+          ? 5000
+          : false,
+      refetchIntervalInBackground: true,
+    });
 
   // Combine challenges with their submission status
   const challengesWithStatus: ChallengeWithStatus[] = useMemo(() => {
-    return sortedChallenges.map((challenge, index) => {
-      const submission = submissionQueries[index]?.data;
+    return sortedChallenges.map((challenge) => {
+      const submissionSummary = submissionsByChallengeId.get(challenge.id);
+      const submission =
+        challenge.id === selectedChallengeId ? selectedSubmission : undefined;
       return {
         ...challenge,
-        status: getChallengeStatus(submission),
+        status: getChallengeStatus(submissionSummary ?? submission),
         submission,
       };
     });
-  }, [sortedChallenges, submissionQueries]);
+  }, [
+    sortedChallenges,
+    submissionsByChallengeId,
+    selectedChallengeId,
+    selectedSubmission,
+  ]);
 
   const selectedChallenge = challengesWithStatus[selectedIndex];
-  const isLoadingSubmissions = submissionQueries.some((q) => q.isLoading);
+  const isLoadingSubmissionData =
+    isLoadingSubmissions || isLoadingSelectedSubmission;
 
   // Navigation handlers
   const goToPrevious = () => {
@@ -358,10 +432,11 @@ export function ChallengeView() {
           "flex-1 border rounded-lg bg-card flex flex-col overflow-hidden",
         )}
       >
-        {selectedChallenge && !isLoadingSubmissions ? (
+        {selectedChallenge && !isLoadingSubmissionData ? (
           <ChallengeContent
             challenge={selectedChallenge}
             submission={selectedChallenge.submission}
+            hasSubmissionSummary={Boolean(selectedSubmissionSummary)}
             currentIndex={selectedIndex}
             totalCount={challengesWithStatus.length}
             onPrevious={goToPrevious}
@@ -383,6 +458,7 @@ export function ChallengeView() {
 interface ChallengeContentProps {
   challenge: ChallengeWithStatus;
   submission?: Submission | null;
+  hasSubmissionSummary: boolean;
   currentIndex: number;
   totalCount: number;
   onPrevious: () => void;
@@ -474,6 +550,7 @@ function NavigationBar({
 function ChallengeContent({
   challenge,
   submission,
+  hasSubmissionSummary,
   currentIndex,
   totalCount,
   onPrevious,
@@ -498,7 +575,9 @@ function ChallengeContent({
     setLastChallengeId(challenge.id);
   }
 
-  const hasSubmitted = !!submission || justSubmitted;
+  const hasSubmitted = hasSubmissionSummary || !!submission || justSubmitted;
+  const isFailedSubmission =
+    submission?.status === "FAILED" || challenge.status === "failed";
   const isExplanationValid = explanation.length >= 50;
 
   const submitMutation = useMutation({
@@ -514,7 +593,10 @@ function ChallengeContent({
       setJustSubmitted(true);
       // Invalidate the submission query so it refetches
       queryClient.invalidateQueries({
-        queryKey: ["my-submission", challenge.id],
+        queryKey: ["my-submissions"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["submission", data.id],
       });
       toast.success("Code submitted successfully!");
       router.push(`/submissions/${data.id}`);
@@ -533,9 +615,19 @@ function ChallengeContent({
     !code.trim() ||
     !isExplanationValid ||
     !explanationLanguage ||
+    isFailedSubmission ||
     hasSubmitted ||
     submitMutation.isPending ||
     submitMutation.isSuccess;
+
+  // If submitted but details not loaded yet, show loading state
+  if (hasSubmitted && !submission) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   // If submitted, show results view
   if (hasSubmitted && submission) {
@@ -848,7 +940,9 @@ function ChallengeContent({
                         <AlertDialogAction
                           onClick={() => submitMutation.mutate()}
                           disabled={
-                            submitMutation.isPending || submitMutation.isSuccess
+                            isFailedSubmission ||
+                            submitMutation.isPending ||
+                            submitMutation.isSuccess
                           }
                         >
                           {submitMutation.isPending ? (
